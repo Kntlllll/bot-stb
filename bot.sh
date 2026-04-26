@@ -2,7 +2,6 @@ cat > /tmp/install.sh << 'EOF'
 #!/bin/bash
 set -e
 
-# Warna
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -14,39 +13,38 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 
 # Cek root
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}Jalankan sebagai root!${NC}" 
+   echo -e "${RED}Jalankan sebagai root! gunakan: sudo bash install.sh${NC}" 
    exit 1
 fi
 
-# Update system
+echo -e "${YELLOW}📝 Masukkan Token Bot Telegram:${NC}"
+read -p "Token: " BOT_TOKEN
+
+if [ -z "$BOT_TOKEN" ]; then
+    echo -e "${RED}Token tidak boleh kosong!${NC}"
+    exit 1
+fi
+
 echo -e "${YELLOW}📦 Updating system...${NC}"
 apt update && apt upgrade -y
 
-# Install Node.js & npm
 echo -e "${YELLOW}📦 Installing Node.js...${NC}"
 apt install nodejs npm -y
 
-# Install dependencies
-echo -e "${YELLOW}📦 Installing dependencies...${NC}"
-npm install -g npm@latest
-
-# Buat folder bot
 echo -e "${YELLOW}📁 Creating bot directory...${NC}"
 mkdir -p /opt/telegram-bot
 cd /opt/telegram-bot
 
-# Install node modules
 echo -e "${YELLOW}📦 Installing node modules...${NC}"
 npm init -y
 npm install node-telegram-bot-api express
 
-# Download bot script
-echo -e "${YELLOW}🤖 Downloading bot script...${NC}"
-cat > bot.js << 'BOT_EOF'
+echo -e "${YELLOW}🤖 Creating bot script...${NC}"
+cat > bot.js << BOT_EOF
 const TelegramBot = require('node-telegram-bot-api');
 const { exec, spawn } = require('child_process');
 
-const TOKEN = '7001146342:AAHa8VDwV40ICaQt7I_d8lc1BMqsUI1907g';
+const TOKEN = '${BOT_TOKEN}';
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 const processes = new Map();
@@ -328,7 +326,6 @@ bot.on('text', async (msg) => {
 console.log('🤖 CyberVPN Terminal Bot Started...');
 BOT_EOF
 
-# Buat systemd service
 echo -e "${YELLOW}🛠 Creating systemd service...${NC}"
 cat > /etc/systemd/system/telegram-bot.service << 'EOF'
 [Unit]
@@ -348,23 +345,19 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# Reload systemd
 systemctl daemon-reload
 systemctl enable telegram-bot
 systemctl start telegram-bot
 
-# Selesai
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}✅ INSTALLATION COMPLETE!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${YELLOW}📱 Buka Telegram dan cari bot: @CyberVPNTerminalBot${NC}"
+echo -e "${YELLOW}📱 Buka Telegram dan cari bot lo${NC}"
 echo -e "${YELLOW}💬 Kirim /start untuk mulai${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-# Cek status
 systemctl status telegram-bot --no-pager
 EOF
 
-# Jalankan installer
 chmod +x /tmp/install.sh
 /tmp/install.sh
